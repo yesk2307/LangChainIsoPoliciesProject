@@ -1,15 +1,10 @@
-# Core dependencies
+# Core LLM & Framework dependencies
 python-dotenv>=1.0.0
 langchain>=0.3.0
 langchain-community>=0.3.0
 langchain-google-genai>=2.0.0
-google-genai>=1.0.0
 
-# Vector Stores & Tokenizers
-chromadb>=1.5.0
-faiss-cpu>=1.13.0
-tiktoken>=0.14.0
-langchain-chroma>=0.2.0
+# Document Parsing & Vector Storage
 pypdf>=6.0.0
-
-
+chromadb>=1.5.0
+langchain-chroma>=0.2.0

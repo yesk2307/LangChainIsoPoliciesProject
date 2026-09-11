@@ -26,6 +26,9 @@ dist/
 build/
 *.egg-info/
 
+# Vector Store Persistence
+chroma_db/
+
 # Testing & Coverage
 .pytest_cache/
 .coverage
