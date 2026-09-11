@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ISO Policy AI Assistant | LangChain & Gemini</title>
+  <meta name="description" content="AI compliance assistant for querying ISO Information Security policies with verified page citations.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+  <!-- Marked.js for fast, safe markdown parsing -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-brand">
+        <div class="brand-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <path d="M9 12l2 2 4-4"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1 class="brand-title">ISO Policy Assistant</h1>
+          <span class="brand-subtitle">LangChain &amp; Gemini RAG</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <div class="status-badge" id="statusBadge">
+          <span class="status-dot"></span>
+          <span class="status-text" id="statusCount">25 Policies Indexed</span>
+        </div>
+        <button class="btn btn-secondary" id="openCatalogBtn" title="View all indexed policies">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
+            <path d="M6 6h10M6 10h10M6 14h6"/>
+          </svg>
+          Policy Catalog
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="chat-container">
+      <div class="messages-area" id="messagesArea">
+        <!-- Hero Welcome -->
+        <div class="welcome-card" id="welcomeCard">
+          <div class="welcome-badge">Official Compliance Knowledge Base</div>
+          <h2 class="welcome-title">Ask anything about company security policies</h2>
+          <p class="welcome-desc">
+            Directly search across 25 verified ISO policy documents. Answers are strictly grounded in source documents with exact page-level citations.
+          </p>
+
+          <!-- Suggested Prompts -->
+          <div class="suggestions-header">Quick questions to get started:</div>
+          <div class="suggestions-grid" id="suggestionsGrid">
+            <button class="suggestion-chip" data-query="What is the company policy regarding the use of Generative AI tools?">
+              <span class="chip-icon">🤖</span>
+              <span class="chip-text">Generative AI Policy &amp; Rules</span>
+            </button>
+            <button class="suggestion-chip" data-query="What are the rules regarding password complexity and multi-factor authentication?">
+              <span class="chip-icon">🔑</span>
+              <span class="chip-text">Password Complexity &amp; MFA</span>
+            </button>
+            <button class="suggestion-chip" data-query="Which policy describes how and when employees must report security incidents?">
+              <span class="chip-icon">🚨</span>
+              <span class="chip-text">Security Incident Reporting Workflow</span>
+            </button>
+            <button class="suggestion-chip" data-query="What are the requirements for data backup frequency and retention?">
+              <span class="chip-icon">💾</span>
+              <span class="chip-text">Data Backup &amp; Retention Policies</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Chat messages will be dynamically injected here -->
+      </div>
+
+      <!-- Input Bar -->
+      <footer class="input-container">
+        <form class="query-form" id="queryForm">
+          <div class="input-wrapper">
+            <textarea 
+              id="queryInput" 
+              class="query-input" 
+              placeholder="Ask a question about ISO policies, access controls, backups, training..." 
+              rows="1"
+              required
+            ></textarea>
+            <button type="submit" class="submit-btn" id="submitBtn" aria-label="Send query">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              </svg>
+            </button>
+          </div>
+          <div class="input-footer">
+            <span class="footer-hint">Press <kbd>Enter</kbd> to send, <kbd>Shift + Enter</kbd> for new line. Powered by Gemini 3.6 Flash.</span>
+          </div>
+        </form>
+      </footer>
+    </main>
+
+    <!-- Policy Catalog Modal -->
+    <div class="modal-backdrop" id="catalogModal" aria-hidden="true">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <h3 class="modal-title">Indexed ISO Policies Catalog</h3>
+            <span class="modal-subtitle">25 policies loaded into ChromaDB vector store</span>
+          </div>
+          <button class="close-modal-btn" id="closeCatalogBtn" aria-label="Close modal">&times;</button>
+        </div>
+        <div class="modal-search">
+          <input type="text" id="policySearchInput" class="search-input" placeholder="Filter policies by name...">
+        </div>
+        <div class="modal-body">
+          <ul class="policy-list" id="policyList">
+            <li class="loading-policies">Loading policies catalog...</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

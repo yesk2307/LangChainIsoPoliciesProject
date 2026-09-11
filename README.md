@@ -37,15 +37,26 @@ GOOGLE_API_KEY=your_gemini_api_key_here
 
 ## Usage
 
-### Run Demonstration Queries
-Runs sample queries across multiple policies:
+### 🌐 Web Interface (Recommended)
+Launch the interactive web application:
 
 ```bash
-python app.py
+python server.py
 ```
 
-### Ask Custom Questions
-Pass any question as a command-line argument:
+Then open your browser and navigate to:
+👉 **[http://localhost:8000](http://localhost:8000)**
+
+The interface includes:
+- An intuitive dark-mode interface with instant question chips.
+- Markdown rendering for policy quotes and requirements.
+- Verified document and page-level citation badges for every answer.
+- An interactive catalog modal to browse all 25 indexed policy documents.
+
+---
+
+### 💻 Command-Line Interface (CLI)
+You can also ask questions directly in your terminal:
 
 ```bash
 python app.py "What are the rules regarding password and credential security?"
