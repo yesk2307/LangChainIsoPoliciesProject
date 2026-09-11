@@ -4,34 +4,45 @@
 
 The **ISO Policies RAG System** is an enterprise-grade Retrieval-Augmented Generation (RAG) application developed in Python. It allows users to ask natural language questions against a repository of 25 corporate Information Security and ISO policy documents, receiving precise, fact-checked answers accompanied by document and page-level citations.
 
-The solution is powered by **LangChain (v0.3)**, **Google Gemini (`gemini-3.6-flash`)**, **Google Generative AI Embeddings (`models/gemini-embedding-001`)**, and **ChromaDB** for persistent vector storage.
+The solution provides two interaction modalities:
+1. **Interactive Web Application**: A modern, responsive dark-mode chat interface with one-click suggestion chips, policy browsing catalog, and visual citation badges.
+2. **Command-Line Interface (CLI)**: A scriptable terminal interface for automated demonstration and ad-hoc queries.
+
+The solution is powered by **LangChain (v0.3)**, **Google Gemini (`gemini-3.6-flash`)**, **Google Generative AI Embeddings (`models/gemini-embedding-001`)**, **ChromaDB** for persistent vector storage, and **FastAPI** for backend service delivery.
 
 ---
 
 ## 2. Architecture & System Workflow
 
-The system follows a decoupled, three-phase RAG pipeline: **Ingestion & Indexing**, **Context Retrieval**, and **Grounded Generation**.
+The system follows a decoupled, multi-tier RAG pipeline: **Document Ingestion & Indexing**, **Context Retrieval**, **Grounded Generation**, and **Multi-Client Delivery (Web UI & CLI)**.
 
 ```mermaid
 flowchart TD
     subgraph Ingestion ["1. Document Ingestion & Vector Storage"]
-        A[Policies/*.pdf \n25 Documents / 162 Pages] -->|PyPDFLoader| B[Document Pages + Metadata]
-        B -->|RecursiveCharacterTextSplitter\nchunk_size=1000, overlap=200| C[400 Text Chunks]
-        C -->|Batching with 429 Retry Backoff| D[Google Gemini Embeddings\nmodels/gemini-embedding-001]
-        D -->|Persist| E[(ChromaDB Local Store\n./chroma_db)]
+        A["Policies/*.pdf <br/>(25 Documents / 162 Pages)"] -->|PyPDFLoader| B[Document Pages + Metadata]
+        B -->|RecursiveCharacterTextSplitter<br/>chunk_size=1000, overlap=200| C[400 Text Chunks]
+        C -->|Batching with 429 Retry Backoff| D["Google Gemini Embeddings<br/>(models/gemini-embedding-001)"]
+        D -->|Persist| E[("ChromaDB Local Store<br/>./chroma_db")]
     end
 
-    subgraph QueryExecution ["2. Query & Retrieval"]
-        F[User Question] -->|Embed Query| G[Vector Similarity Search\nk=5 Chunks]
-        E --> G
-        G --> H[format_docs_with_sources\nDocument Name + Page Citations]
+    subgraph RetrievalGeneration ["2. Retrieval & Grounded Generation"]
+        Q[User Query] -->|Embed Query| S["Vector Similarity Search<br/>(k=5 Chunks)"]
+        E --> S
+        S --> CTX["format_docs_with_sources<br/>Document Name + Page Citations"]
+        CTX --> P["Compliance Prompt Template<br/>(Zero-Hallucination Guardrail)"]
+        Q --> P
+        P --> LLM["Gemini 3.6 Flash<br/>(temperature=0)"]
+        LLM --> ANS[Grounded Answer + Page Citations]
     end
 
-    subgraph Generation ["3. Grounded Generation"]
-        H --> I[Prompt Template\nZero-Hallucination & Citation Rules]
-        F --> I
-        I --> J[Gemini 3.6 Flash\ntemperature=0]
-        J --> K[Final Answer with Page Citations]
+    subgraph ClientLayer ["3. Client Interfaces"]
+        W["Web UI (Browser)<br/>http://localhost:8000"] -->|REST API<br/>POST /api/query| API["FastAPI Backend<br/>(server.py)"]
+        API --> Q
+        ANS --> API
+        API -->|JSON Response| W
+
+        CLI["CLI Tool<br/>(python app.py)"] --> Q
+        ANS --> CLI
     end
 ```
 
@@ -70,8 +81,45 @@ flowchart TD
   3. **Mandatory Citations**: Mandates explicit page tags (e.g. `[Page 3]`) for every policy statement.
   4. **Deterministic Output**: LLM temperature is set to `0` to eliminate creative variance and ensure audit-ready answers.
 
-### 3.4. Application Interface (`app.py`)
-Provides both automated demonstration and CLI query execution:
+### 3.4. Backend Web Server (`server.py`)
+A lightweight, asynchronous **FastAPI** server that bridges the RAG pipeline to web clients:
+- **`POST /api/query`**: Accepts `{ "question": "..." }`, invokes the RAG engine, extracts source snippets and page references, and returns structured JSON:
+  ```json
+  {
+    "question": "...",
+    "answer": "...",
+    "sources": [
+      {
+        "policy": "AI Use Policy.pdf",
+        "page": 2,
+        "snippet": "..."
+      }
+    ]
+  }
+  ```
+- **`GET /api/policies`**: Returns catalog metadata (filename, title, file size in KB) for all 25 indexed policy documents.
+- **Static Assets Mount**: Serves the frontend application files (`static/`) directly at the root path (`/`).
+- **CORS Support**: Integrated `CORSMiddleware` allows cross-origin communication for future extensions or embedding into internal corporate portals.
+
+### 3.5. Frontend User Interface (`static/`)
+A modern, zero-build web interface built with standard web technologies:
+- **`index.html`**: Semantic layout containing a branded navigation header, active policy count badge, interactive suggestion prompt chips, conversational message feed, auto-resizing input textarea, and a policy catalog modal.
+- **`style.css`**: Premium dark-mode design system:
+  - Custom HSL palette with deep slate canvas (`hsl(222, 47%, 7%)`) and glowing violet/cyan accents.
+  - Glassmorphic message bubbles with border illumination.
+  - Modern typography using Google Fonts (`Outfit` for headings, `Inter` for body).
+  - Animated pulsing status indicators and bouncing typing dots.
+  - Fully responsive grid and layout adapting to mobile, tablet, and desktop screens.
+- **`app.js`**: Client controller handling:
+  - Auto-resizing textarea with `Enter` to submit and `Shift + Enter` for new lines.
+  - Quick-prompt chip interaction for instant demonstration queries.
+  - Asynchronous query submission and dynamic loading animations.
+  - Markdown rendering of headers, bold text, and lists using `marked.js`.
+  - Dynamic citation badge generation with document names and page numbers.
+  - Live policy catalog modal with real-time text filtering.
+
+### 3.6. Command-Line Interface (`app.py`)
+Provides automated demonstration and terminal-based query execution:
 - **CLI Argument Mode**: Executes user queries directly:
   ```bash
   python app.py "What are the rules regarding password complexity?"
@@ -99,9 +147,14 @@ The indexed corpus consists of **25 ISO policy and procedure documents** compris
 
 ## 5. Available Functionality & Usage Examples
 
-### 5.1. Asking Specific Compliance Questions
-Users can query the knowledge base for specific standards:
+### 5.1. Interactive Web Application
+Users can interact with the system via a browser at `http://localhost:8000`:
+- **One-Click Query Suggestions**: Click on curated prompt chips (e.g. *"Generative AI Policy & Rules"*, *"Password Complexity & MFA"*, *"Security Incident Reporting Workflow"*).
+- **Formatted Policy Answers**: Responses render with bold highlights, bulleted requirements, and exact page citations.
+- **Citation Badges**: Every generated answer includes verified policy badges (e.g. `[AI Use Policy.pdf (p. 2)]`) for compliance auditability.
+- **Policy Catalog Explorer**: Open the **"Policy Catalog"** button in the header to search and browse all 25 indexed PDF documents.
 
+### 5.2. Asking Specific Compliance Questions (CLI)
 ```bash
 python app.py "What are the requirements for password complexity and multi-factor authentication?"
 ```
@@ -122,7 +175,7 @@ Based on the provided policy context, here are the requirements:
 * MFA is strictly required for all remote access tools [Page 4].
 ```
 
-### 5.2. Querying Cross-Policy Processes
+### 5.3. Querying Cross-Policy Processes
 ```bash
 python app.py "Which policy describes how to report security incidents?"
 ```
@@ -134,7 +187,7 @@ Based on the provided policy document (IncidentResponsePlan-v2.pdf):
 * Reporting can be conducted via email, a ticket in YouTrack, or anonymously through the PeopleForce portal [Page 2].
 ```
 
-### 5.3. Guardrail Against Uncovered Queries
+### 5.4. Guardrail Against Uncovered Queries
 If a user asks a question not addressed in any policy (or outside the scope of the document), the model strictly declines rather than hallucinating:
 ```bash
 python app.py "What is the policy for reimbursement of employee home internet expenses?"
@@ -155,13 +208,18 @@ LangChainIsoPoliciesProject/
 ├── src/
 │   ├── __init__.py
 │   └── rag.py              # Ingestion, ChromaDB loader, and LCEL chain logic
+├── static/                 # Web Application Frontend Assets
+│   ├── index.html          # Semantic HTML5 layout and modal dialogs
+│   ├── style.css           # Modern dark-mode styling and responsive layout
+│   └── app.js              # Client controller, markdown parser, and event handling
+├── server.py               # FastAPI backend server with REST endpoints
 ├── app.py                  # Command-line entry point and execution script
-├── requirements.txt        # Minimal production dependencies
-├── pyproject.toml          # Project configuration metadata
+├── requirements.txt        # Production dependencies
+├── pyproject.toml          # Project configuration and metadata
 ├── .env.example            # Template for environment variables
-├── .env                    # Local secrets (API keys)
+├── .env                    # Local secrets (Google API key)
 ├── .gitignore              # Configured for .venv/, chroma_db/, and secrets
-├── README.md               # Quickstart guide
+├── README.md               # User guide and quickstart
 └── Specification.md        # Technical specification and architecture overview
 ```
 
@@ -169,9 +227,21 @@ LangChainIsoPoliciesProject/
 
 ## 7. Technology Stack & Dependencies
 
-- **Language**: Python 3.9+
+### Backend & AI Pipeline
+- **Language Runtime**: Python 3.9+
 - **LLM Orchestration**: `langchain` (v0.3.30), `langchain-community` (v0.3.31), `langchain-core` (v0.3.86)
 - **Model Provider**: `langchain-google-genai` (v2.1.12)
+  - Chat Model: `gemini-3.6-flash`
+  - Embedding Model: `models/gemini-embedding-001` (3072 dimensions)
 - **Vector Database**: `chromadb` (v1.5.9), `langchain-chroma` (v0.2.6)
-- **PDF Parser**: `pypdf` (v6.18.1)
+- **Document Processing**: `pypdf` (v6.18.1)
+- **Web Framework**: `fastapi` (v0.128.8), `starlette` (v0.49.3)
+- **ASGI Server**: `uvicorn` (v0.39.0)
 - **Environment Management**: `python-dotenv` (v1.2.1)
+
+### Frontend Layer
+- **Markup**: HTML5 (Semantic elements)
+- **Styling**: Vanilla CSS3 (Custom properties, glassmorphism, flexbox/grid, keyframe animations)
+- **Logic**: Vanilla JavaScript (ES6+, asynchronous Fetch API)
+- **Typography**: Google Fonts (`Outfit`, `Inter`)
+- **Markdown Rendering**: [Marked.js](https://cdn.jsdelivr.net/npm/marked/marked.min.js) (v15+)
