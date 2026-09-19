@@ -53,6 +53,8 @@ The interface includes:
 - Verified document and page-level citation badges for every answer.
 - An interactive catalog modal to browse all 25 indexed policy documents.
 
+> For detailed start/stop commands, background execution, and troubleshooting, see [HowToRunServer.md](HowToRunServer.md).
+
 ---
 
 ### 💻 Command-Line Interface (CLI)

@@ -220,6 +220,7 @@ LangChainIsoPoliciesProject/
 ├── .env                    # Local secrets (Google API key)
 ├── .gitignore              # Configured for .venv/, chroma_db/, and secrets
 ├── README.md               # User guide and quickstart
+├── INSTRUCTIONS.md         # Server run, stop, and troubleshooting instructions
 └── Specification.md        # Technical specification and architecture overview
 ```
 
